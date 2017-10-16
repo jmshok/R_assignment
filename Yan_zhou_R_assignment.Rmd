@@ -15,9 +15,11 @@ teosinte files with missing data marked as "-" are named as Chr_*_teosinte_genot
 
 ######Data Inspection#####
 
-set working directiory
+set working directiory and liabrary
 ```{r}
 setwd("~/Desktop/homework/R_assignment")
+library(gtools)
+library(ggplot2)
 ```
 read the files
 ```{r}
@@ -100,7 +102,8 @@ for(i in 1:10){
   k<-NULL
   k2<-NULL
   k<-subset(zea_geno, Chromosome==i)
-  k2<-k[order(k$Position),]
+  k$Position<-as.character(k$Position)
+  k2<-k[mixedorder(k$Position),]
   write.table(k2,file = paste0("Chr_",i,"_zea_genotype_without_replecment.txt"),sep = "\t",row.names = F,quote = F)
 }
 ```
@@ -110,7 +113,8 @@ for(i in 1:10){
   k<-NULL
   k2<-NULL
   k<-subset(zea_geno_replaced, Chromosome==i)
-  k2<-k[order(k$Position),]
+  k$Position<-as.character(k$Position)
+  k2<-k[mixedorder(k$Position),]
   write.table(k2,file = paste0("Chr_",i,"_zea_genotype_after_replecment.txt"),sep = "\t",row.names = F,quote = F)
 }
 ```
@@ -121,7 +125,8 @@ for(i in 1:10){
   k<-NULL
   k2<-NULL
   k<-subset(teosinte_geno, Chromosome==i)
-  k2<-k[order(k$Position),]
+  k$Position<-as.character(k$Position)
+  k2<-k[mixedorder(k$Position),]
   write.table(k2,file = paste0("Chr_",i,"_teosinte_genotype_without_replecment.txt"),sep = "\t",row.names = F,quote = F)
 }
 ```
@@ -131,7 +136,8 @@ for(i in 1:10){
   k<-NULL
   k2<-NULL
   k<-subset(teosinte_geno_replaced, Chromosome==i)
-  k2<-k[order(k$Position),]
+  k$Position<-as.character(k$Position)
+  k2<-k[mixedorder(k$Position),]
   write.table(k2,file = paste0("Chr_",i,"_teosinte_genotype_after_replecment.txt"),sep = "\t",row.names = F,quote = F)
 }
 ```
