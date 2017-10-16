@@ -1,0 +1,137 @@
+---
+title: "R_assignment"
+output: 
+  html_document: 
+    toc: yes
+---
+######instruction#####
+maize files with missing data marked as "?" are named as Chr_*_zea_genotype_without_replacement.txt
+
+maize files with missing data marked as "-" are named as Chr_*_zea_genotype_after_replacement.txt
+
+teosinte files with missing data marked as "?" are named as Chr_*_teosinte_genotype_without_replacement.txt
+
+teosinte files with missing data marked as "-" are named as Chr_*_teosinte_genotype_after_replacement.txt
+
+######Data Inspection#####
+
+set working directiory
+```{r}
+setwd("~/Desktop/homework/R_assignment")
+```
+read the files
+```{r}
+snp_p<-read.table("snp_position.txt",sep="\t", header=T,stringsAsFactors = F)
+genotypic_data<-read.table("fang_et_al_genotypes.txt",header=T,stringsAsFactors = F)
+```
+Inspect data structure
+```{r,echo=TRUE}
+	str(snp_p)
+	str(genotypic_data)
+```
+For SNP information there are 15 columns and 983 SNPs
+
+For genotypic data, there are 2782 lines with 983 SNPs, for each row, the first three columns are "Sample_ID" "JG_OTU" "Group", then followed by 983 SNPs
+
+We also noticed that the Position column of snp and chromosme information file is "chr", this indicates there are text in that column
+```{r}
+	table(snp_p$Position)
+  table(snp_p$Chromosome)
+```
+We got:
+
+	  ... 95897171  96216125  96216463  98507715  multiple   unknown 
+    ...    1         1         1         1        11        27
+There are 11 rows with multiple position and 27 rows with unknown position
+
+Also
+         9    multiple    unknown 
+          60        6       27 
+There are 6 row has multiple chromosme position and 27 has unknown chromosome position
+Then inspect how many different genotype do we have:
+```{r}
+	table(genotypic_data$Group)
+```	
+Then we got:
+
+	TRIPS ZDIPL ZLUXR ZMHUE ZMMIL ZMMLR ZMMMR ZMPBA ZMPIL ZMPJA ZMXCH ZMXCP ZMXIL ZMXNO ZMXNT ZPERR 
+   	22    15    17    10   290  1256    27   900    41    34    75    69     6     7     4     9 
+
+We have three maize groups: ZMMIL, ZMMLR, and ZMMMR total number is 290+1256+27=1573
+And three teosinte groups: ZMPBA, ZMPIL, and ZMPJA total number is 900+41+34=975
+
+######Data transformation#####
+
+fist get the maize and teosinte genotype
+```{r}
+zea<-subset(genotypic_data,Group=="ZMMIL"|Group=="ZMMLR"|Group=="ZMMMR")
+teosinte<-subset(genotypic_data,Group=="ZMPBA"|Group=="ZMPIL"|Group=="ZMPJA")
+```
+
+then transpose with 1st column of original file as header and header of origianal file as row name
+then only keep the rows with genotypic information
+```{r}
+teosinte_t= setNames(data.frame(t(teosinte[,-1])), teosinte[,1])
+zea_t= setNames(data.frame(t(zea[,-1])), zea[,1])
+teosinte_t<-teosinte_t[c(-1,-2),]
+zea_t<-zea_t[c(-1,-2),]
+```
+get the SNP_ID, Chrosome and Position fron snp_p
+```{r}
+snp_temp<-snp_p[,c(1,3,4)]
+```
+
+combin the transpose file and snp_id to generate genotypic files for teosinte and zea
+```{r}
+zea_geno<-cbind(snp_temp,zea_t)
+teosinte_geno<-cbind(snp_temp,teosinte_t)
+```
+replace the ? with -
+```{r}
+zea_geno_replaced<-data.frame(lapply(zea_geno, function(x) {gsub("?", "-", x,fixed=T)}))
+teosinte_geno_replaced<-data.frame(lapply(teosinte_geno, function(x) {gsub("?", "-", x,fixed=T)}))
+```
+
+Generate the files:
+For Zea
+First is 10 files with ? marked as missing data
+```{r}
+for(i in 1:10){
+  k<-NULL
+  k2<-NULL
+  k<-subset(zea_geno, Chromosome==i)
+  k2<-k[order(k$Position),]
+  write.table(k2,file = paste0("Chr_",i,"_zea_genotype_without_replecment.txt"),sep = "\t",row.names = F,quote = F)
+}
+```
+10 files with "-" marked as missing data
+```{r}
+for(i in 1:10){
+  k<-NULL
+  k2<-NULL
+  k<-subset(zea_geno_replaced, Chromosome==i)
+  k2<-k[order(k$Position),]
+  write.table(k2,file = paste0("Chr_",i,"_zea_genotype_after_replecment.txt"),sep = "\t",row.names = F,quote = F)
+}
+```
+For teosinte
+First is 10 files with ? marked as missing data
+```{r}
+for(i in 1:10){
+  k<-NULL
+  k2<-NULL
+  k<-subset(teosinte_geno, Chromosome==i)
+  k2<-k[order(k$Position),]
+  write.table(k2,file = paste0("Chr_",i,"_teosinte_genotype_without_replecment.txt"),sep = "\t",row.names = F,quote = F)
+}
+```
+10 files with "-" marked as missing data
+```{r}
+for(i in 1:10){
+  k<-NULL
+  k2<-NULL
+  k<-subset(teosinte_geno_replaced, Chromosome==i)
+  k2<-k[order(k$Position),]
+  write.table(k2,file = paste0("Chr_",i,"_teosinte_genotype_after_replecment.txt"),sep = "\t",row.names = F,quote = F)
+}
+```
