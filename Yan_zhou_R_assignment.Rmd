@@ -5,6 +5,8 @@ output:
     toc: yes
 ---
 ######instruction#####
+
+
 maize files with missing data marked as "?" are named as Chr_*_zea_genotype_without_replacement.txt
 
 maize files with missing data marked as "-" are named as Chr_*_zea_genotype_after_replacement.txt
