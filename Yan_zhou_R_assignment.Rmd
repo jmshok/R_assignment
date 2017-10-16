@@ -13,19 +13,24 @@ teosinte files with missing data marked as "?" are named as Chr_*_teosinte_genot
 
 teosinte files with missing data marked as "-" are named as Chr_*_teosinte_genotype_after_replacement.txt
 
+Note: graphic figure will be generated at the working directory that you set, please check if they are there if you can not find them when directly running them in rmd file (some of them are big).
+
 ######Data Inspection#####
 
-set working directiory and liabrary
+set working directiory and liabrary (Pls change it to your own directory before running any code)
 ```{r}
 setwd("~/Desktop/homework/R_assignment")
 library(gtools)
 library(ggplot2)
+library('dplyr')
+library(reshape2)
 ```
 read the files
 ```{r}
 snp_p<-read.table("snp_position.txt",sep="\t", header=T,stringsAsFactors = F)
 genotypic_data<-read.table("fang_et_al_genotypes.txt",header=T,stringsAsFactors = F)
 ```
+
 Inspect data structure
 ```{r,echo=TRUE}
 	str(snp_p)
@@ -141,3 +146,94 @@ for(i in 1:10){
   write.table(k2,file = paste0("Chr_",i,"_teosinte_genotype_after_replecment.txt"),sep = "\t",row.names = F,quote = F)
 }
 ```
+
+#Plotting
+```{r}
+P<-as.data.frame(table(snp_temp$Chromosome))
+P$Var1<-as.character(P$Var1)
+P<-P[mixedorder(P$Var1),]
+P$Freq<-as.numeric(P$Freq)
+names(P)<-c("Chr","Number.of.SNPs")
+P$Chr <- factor(P$Chr, levels=unique(P$Chr))
+png(height=900, width=500, pointsize=30, file="SNP_number_by_chromosome.png")
+ggplot(P,aes(x=Chr,y=Number.of.SNPs))+geom_point()+xlab("Chromosome")+ylab("Number of SNPs")
+
+```
+#Homozygosity
+
+First we need transfrom the data into: 1 As Heterozygous 2 As Homozygous NA as Missing
+```{r}
+for (i in 1:nrow(genotypic_data)){
+  
+  for (j in 4:ncol(genotypic_data)) {
+    if(genotypic_data[i,j]=="A/A"|genotypic_data[i,j]=="T/T"|genotypic_data[i,j]=="G/G"|genotypic_data[i,j]=="C/C"){
+      genotypic_data[i,j]=2 
+    }else{
+      if(genotypic_data[i,j]=="?/?"){
+        genotypic_data[i,j]=c("NA")
+      }else{
+        genotypic_data[i,j]=1
+      }
+    }
+  }
+}
+
+```
+
+Then transpose the data to calculate frequency of Homozygous, heterozygous and NA of each sample and adjust these value back to the genotypic folder with first three columns
+
+```{r}
+genotyp_info<-genotypic_data[,c(1:3)]
+genotyp_info$homozygous<-NA
+genotyp_info$heterozygous<-NA
+genotyp_info$Missing<-NA
+temp= setNames(data.frame(t(genotypic_data[,-1])), genotypic_data[,1])
+i<-NULL
+j<-NULL
+for(i in 1:nrow(genotyp_info)){
+  m<-table(temp[,i])
+  s<-m[1]+m[2]+m[3]
+  #get heterozygous freq
+  genotyp_info[i,5]<-m[1]/s
+  #get homozygous freq
+  genotyp_info[i,4]<-m[2]/s
+  #get missing freq
+  genotyp_info[i,6]<-m[3]/s
+}
+```
+sorting the data
+
+```{r}
+genotyp_info<-genotyp_info[mixedorder(genotyp_info$Sample_ID),]
+genotyp_info<-genotyp_info[mixedorder(genotyp_info$Group),]
+```
+
+First draw the frequency map of all samples
+```{r}
+temp1<-genotyp_info[,c(1,4:6)]
+d <- melt(temp1, id.vars="Sample_ID")
+png(height=1000, width=500, file="Proportion_of_Allele_frequency.png")
+ggplot(d, aes(Sample_ID,value, fill=variable)) + 
+  geom_bar(stat = "identity")+xlab("Sample_ID")+ylab("frequency")
+```
+
+Then draw the frequency map using the max value of each allele types within a group
+
+```{r}
+temp2<-genotyp_info[,c(3:6)]
+d2 <- melt(temp2, id.vars="Group")
+png(height=1000, width=500, file="Proportion_of_Allele_frequency_by_group.png")
+ggplot(d2, aes(x=Group,y=value, fill=variable)) + 
+  geom_bar(stat = "identity",position=position_dodge())+xlab("Sample_ID")+ylab("MAx Frequency")
+
+```
+done
+
+We can also check the proportion of missing data of each genotype:
+```{r}
+png(height=1000, width=500,  file="Missing_genotypic_data_rate.png")
+ggplot(genotyp_info,aes(Sample_ID, Missing))+
+  geom_bar(stat = "identity")+xlab("Sample_ID")+ylab("Proportion of Missing Data")
+```
+
+Hmmm...some genotypes might need to be removed from the dataset....
